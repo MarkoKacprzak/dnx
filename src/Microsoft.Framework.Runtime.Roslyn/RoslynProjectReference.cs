@@ -23,12 +23,12 @@ namespace Microsoft.Framework.Runtime.Roslyn
         {
             _project = project;
 
-            BeforeCompilationContext = beforeCompileContext;
+            BeforeCompileContext = beforeCompileContext;
             MetadataReference = beforeCompileContext.Compilation.ToMetadataReference(embedInteropTypes: _project.EmbedInteropTypes);
             Name = _project.Name;
         }
 
-        public BeforeCompileContext BeforeCompilationContext { get; private set; }
+        public BeforeCompileContext BeforeCompileContext { get; private set; }
 
         public MetadataReference MetadataReference { get; private set; }
 
@@ -41,8 +41,8 @@ namespace Microsoft.Framework.Runtime.Roslyn
 
         public IDiagnosticResult GetDiagnostics()
         {
-            var diagnostics = BeforeCompilationContext.Diagnostics
-                .Concat(BeforeCompilationContext.Compilation.GetDiagnostics());
+            var diagnostics = BeforeCompileContext.Diagnostics
+                .Concat(BeforeCompileContext.Compilation.GetDiagnostics());
 
             return CreateDiagnosticResult(success: true, diagnostics: diagnostics);
         }
@@ -50,7 +50,7 @@ namespace Microsoft.Framework.Runtime.Roslyn
         public IList<ISourceReference> GetSources()
         {
             // REVIEW: Raw sources?
-            return BeforeCompilationContext.Compilation
+            return BeforeCompileContext.Compilation
                                      .SyntaxTrees
                                      .Select(t => t.FilePath)
                                      .Where(path => !string.IsNullOrEmpty(path))
@@ -63,7 +63,7 @@ namespace Microsoft.Framework.Runtime.Roslyn
             using (var pdbStream = new MemoryStream())
             using (var assemblyStream = new MemoryStream())
             {
-                IList<ResourceDescription> resources = BeforeCompilationContext.Resources;
+                IList<ResourceDescription> resources = BeforeCompileContext.Resources;
 
                 Logger.TraceInformation("[{0}]: Emitting assembly for {1}", GetType().Name, Name);
 
@@ -73,25 +73,25 @@ namespace Microsoft.Framework.Runtime.Roslyn
 
                 if (_supportsPdbGeneration.Value)
                 {
-                    emitResult = BeforeCompilationContext.Compilation.Emit(assemblyStream, pdbStream: pdbStream, manifestResources: resources);
+                    emitResult = BeforeCompileContext.Compilation.Emit(assemblyStream, pdbStream: pdbStream, manifestResources: resources);
                 }
                 else
                 {
                     Logger.TraceWarning("PDB generation is not supported on this platform");
-                    emitResult = BeforeCompilationContext.Compilation.Emit(assemblyStream, manifestResources: resources);
+                    emitResult = BeforeCompileContext.Compilation.Emit(assemblyStream, manifestResources: resources);
                 }
 
                 sw.Stop();
 
                 Logger.TraceInformation("[{0}]: Emitted {1} in {2}ms", GetType().Name, Name, sw.ElapsedMilliseconds);
 
-                var diagnostics = BeforeCompilationContext.Diagnostics.Concat(
+                var diagnostics = BeforeCompileContext.Diagnostics.Concat(
                     emitResult.Diagnostics);
 
                 var afterCompileContext = new AfterCompileContext()
                 {
-                    ProjectContext = BeforeCompilationContext.ProjectContext,
-                    Compilation = BeforeCompilationContext.Compilation,
+                    ProjectContext = BeforeCompileContext.ProjectContext,
+                    Compilation = BeforeCompileContext.Compilation,
                     AssemblyStream = assemblyStream,
                     SymbolStream = pdbStream,
                     Diagnostics = new List<Diagnostic>()
@@ -102,7 +102,7 @@ namespace Microsoft.Framework.Runtime.Roslyn
                     afterCompileContext.Diagnostics.Add(diagnostic);
                 }
 
-                foreach (var m in BeforeCompilationContext.Modules)
+                foreach (var m in BeforeCompileContext.Modules)
                 {
                     m.AfterCompile(afterCompileContext);
                 }
@@ -141,12 +141,12 @@ namespace Microsoft.Framework.Runtime.Roslyn
         public void EmitReferenceAssembly(Stream stream)
         {
             var emitOptions = new EmitOptions(metadataOnly: true);
-            BeforeCompilationContext.Compilation.Emit(stream, options: emitOptions);
+            BeforeCompileContext.Compilation.Emit(stream, options: emitOptions);
         }
 
         public IDiagnosticResult EmitAssembly(string outputPath)
         {
-            IList<ResourceDescription> resources = BeforeCompilationContext.Resources;
+            IList<ResourceDescription> resources = BeforeCompileContext.Resources;
 
             var assemblyPath = Path.Combine(outputPath, Name + ".dll");
             var pdbPath = Path.Combine(outputPath, Name + ".pdb");
@@ -157,7 +157,7 @@ namespace Microsoft.Framework.Runtime.Roslyn
             using (var xmlDocStream = new MemoryStream())
             using (var pdbStream = new MemoryStream())
             using (var assemblyStream = new MemoryStream())
-            using (var win32resStream = BeforeCompilationContext.Compilation.CreateDefaultWin32Resources(
+            using (var win32resStream = BeforeCompileContext.Compilation.CreateDefaultWin32Resources(
                 versionResource: true,
                 noManifest: false,
                 manifestContents: null,
@@ -175,7 +175,7 @@ namespace Microsoft.Framework.Runtime.Roslyn
                 if (_supportsPdbGeneration.Value)
                 {
                     var options = new EmitOptions(pdbFilePath: pdbPath);
-                    emitResult = BeforeCompilationContext.Compilation.Emit(
+                    emitResult = BeforeCompileContext.Compilation.Emit(
                         assemblyStream,
                         pdbStream: pdbStream,
                         xmlDocumentationStream: xmlDocStream,
@@ -186,7 +186,7 @@ namespace Microsoft.Framework.Runtime.Roslyn
                 else
                 {
                     Logger.TraceWarning("PDB generation is not supported on this platform");
-                    emitResult = BeforeCompilationContext.Compilation.Emit(
+                    emitResult = BeforeCompileContext.Compilation.Emit(
                         assemblyStream,
                         xmlDocumentationStream: xmlDocStream,
                         manifestResources: resources,
@@ -199,8 +199,8 @@ namespace Microsoft.Framework.Runtime.Roslyn
 
                 var afterCompileContext = new AfterCompileContext()
                 {
-                    ProjectContext = BeforeCompilationContext.ProjectContext,
-                    Compilation = BeforeCompilationContext.Compilation,
+                    ProjectContext = BeforeCompileContext.ProjectContext,
+                    Compilation = BeforeCompileContext.Compilation,
                     AssemblyStream = assemblyStream,
                     SymbolStream = pdbStream,
                     XmlDocStream = xmlDocStream,
@@ -212,7 +212,7 @@ namespace Microsoft.Framework.Runtime.Roslyn
                     afterCompileContext.Diagnostics.Add(diagnostic);
                 }
 
-                foreach (var m in BeforeCompilationContext.Modules)
+                foreach (var m in BeforeCompileContext.Modules)
                 {
                     m.AfterCompile(afterCompileContext);
                 }
