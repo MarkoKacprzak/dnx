@@ -45,7 +45,7 @@ namespace Microsoft.Framework.Runtime.Roslyn
             _services = services;
         }
 
-        public CompilationContext CompileProject(
+        public BeforeCompileContext CompileProject(
             ICompilationProject project,
             ILibraryKey target,
             IEnumerable<IMetadataReference> incomingReferences,
@@ -124,17 +124,30 @@ namespace Microsoft.Framework.Runtime.Roslyn
 
             compilation = ApplyVersionInfo(compilation, project, parseOptions);
 
-            var compilationContext = new CompilationContext(
-                compilation,
-                project,
-                target.TargetFramework,
-                target.Configuration,
-                () => resourcesResolver()
-                    .Select(res => new ResourceDescription(
-                        res.Name,
-                        res.StreamFactory,
-                        isPublic: true))
-                    .ToList());
+            Func<IList<ResourceDescription>> resourceResolverWrapper = () =>
+            {
+                var resourceResolveSw = Stopwatch.StartNew();
+                Logger.TraceInformation("[{0}]: Generating resources for {1}", nameof(BeforeCompileContext), project);
+
+                var resources = resourcesResolver()
+                    .Select(res => new ResourceDescription(res.Name, res.StreamFactory, isPublic: true))
+                    .ToList();
+
+                resourceResolveSw.Stop();
+                Logger.TraceInformation("[{0}]: Generated resources for {1} in {2}ms", nameof(BeforeCompileContext),
+                                                                                       project.Name,
+                                                                                       sw.ElapsedMilliseconds);
+
+                return resources;
+            };
+
+            var compilationContext = new BeforeCompileContext(resourceResolverWrapper)
+            {
+                Compilation = compilation,
+                ProjectContext = new ProjectContext(project, target.TargetFramework, target.Configuration),
+                Diagnostics = new List<Diagnostic>(),
+                Modules = new List<ICompileModule>()
+            };
 
             // Apply strong-name settings
             ApplyStrongNameSettings(compilationContext);
@@ -189,11 +202,11 @@ namespace Microsoft.Framework.Runtime.Roslyn
             return compilationContext;
         }
 
-        private void ApplyStrongNameSettings(CompilationContext compilationContext)
+        private void ApplyStrongNameSettings(BeforeCompileContext beforeCompileContext)
         {
             // This is temporary, eventually we'll want a project.json feature for this
             var keyFile = Environment.GetEnvironmentVariable(EnvironmentNames.BuildKeyFile);
-            if(!string.IsNullOrEmpty(keyFile))
+            if (!string.IsNullOrEmpty(keyFile))
             {
 #if DNX451
                 var delaySignString = Environment.GetEnvironmentVariable(EnvironmentNames.BuildDelaySign);
@@ -202,16 +215,16 @@ namespace Microsoft.Framework.Runtime.Roslyn
                     string.Equals(delaySignString, "1", StringComparison.OrdinalIgnoreCase));
 
                 var strongNameProvider = new DesktopStrongNameProvider();
-                var newOptions = compilationContext.Compilation.Options
+                var newOptions = beforeCompileContext.Compilation.Options
                     .WithStrongNameProvider(strongNameProvider)
                     .WithCryptoKeyFile(keyFile)
                     .WithDelaySign(delaySign);
-                compilationContext.Compilation = compilationContext.Compilation.WithOptions(newOptions);
+                beforeCompileContext.Compilation = beforeCompileContext.Compilation.WithOptions(newOptions);
 #else
                 var diag = Diagnostic.Create(
                     RoslynDiagnostics.StrongNamingNotSupported,
                     null);
-                compilationContext.Diagnostics.Add(diag);
+                beforeCompileContext.Diagnostics.Add(diag);
 #endif
             }
         }

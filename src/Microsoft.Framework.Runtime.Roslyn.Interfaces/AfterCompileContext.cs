@@ -8,18 +8,18 @@ using Microsoft.CodeAnalysis.CSharp;
 
 namespace Microsoft.Framework.Runtime.Roslyn
 {
-    public interface IAfterCompileContext
+    public class AfterCompileContext
     {
-        IProjectContext ProjectContext { get; }
+        public IProjectContext ProjectContext { get; set; }
 
-        CSharpCompilation Compilation { get; set; }
+        public CSharpCompilation Compilation { get; set; }
 
-        Stream AssemblyStream { get; set; }
+        public Stream AssemblyStream { get; set; }
 
-        Stream SymbolStream { get; set; }
+        public Stream SymbolStream { get; set; }
 
-        Stream XmlDocStream { get; set; }
+        public Stream XmlDocStream { get; set; }
 
-        IList<Diagnostic> Diagnostics { get; }
+        public IList<Diagnostic> Diagnostics { get; set; }
     }
 }
