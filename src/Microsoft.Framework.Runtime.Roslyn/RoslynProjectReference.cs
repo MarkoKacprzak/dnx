@@ -51,11 +51,11 @@ namespace Microsoft.Framework.Runtime.Roslyn
         {
             // REVIEW: Raw sources?
             return BeforeCompileContext.Compilation
-                                     .SyntaxTrees
-                                     .Select(t => t.FilePath)
-                                     .Where(path => !string.IsNullOrEmpty(path))
-                                     .Select(path => (ISourceReference)new SourceFileReference(path))
-                                     .ToList();
+                                       .SyntaxTrees
+                                       .Select(t => t.FilePath)
+                                       .Where(path => !string.IsNullOrEmpty(path))
+                                       .Select(path => (ISourceReference)new SourceFileReference(path))
+                                       .ToList();
         }
 
         public Assembly Load(IAssemblyLoadContext loadContext)

@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.Framework.Runtime.Compilation;
 
 namespace Microsoft.Framework.Runtime.Roslyn
 {
@@ -26,5 +27,7 @@ namespace Microsoft.Framework.Runtime.Roslyn
         public IList<Diagnostic> Diagnostics { get; set; }
 
         public IList<ICompileModule> Modules { get; set; }
+
+        public IList<IMetadataReference> MetadataReferences { get; set; }
     }
 }

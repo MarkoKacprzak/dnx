@@ -146,7 +146,8 @@ namespace Microsoft.Framework.Runtime.Roslyn
                 Compilation = compilation,
                 ProjectContext = new ProjectContext(project, target.TargetFramework, target.Configuration),
                 Diagnostics = new List<Diagnostic>(),
-                Modules = new List<ICompileModule>()
+                Modules = new List<ICompileModule>(),
+                MetadataReferences = new List<IMetadataReference>(incomingReferences)
             };
 
             // Apply strong-name settings
